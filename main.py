@@ -5,24 +5,24 @@ ALUMINUM = vec(211/255, 211/255, 211/255)
 
 u_0 = 4*pi*10e-7
 e_0 = 8.85*10e-12
-WIRE_RADIUS = 0.005
+WIRE_RADIUS = 0.02
 
 class Inductor:
     b_field_render_range = 1.0 #Multiple of coil radius
     b_field_density = 0.1
-    thickness_factor = 0.05
     coil_down_factor = 0.1
     coil = None
     wire1 = None
     wire2 = None
     b_field = None
     
-    def __init__(self, inductance=1.0, length=1.0, radius=1.0, pose=vec(0,0,0), orient=vec(0,0,1)):
+    def __init__(self, inductance=1.0, length=1.0, radius=1.0, wire_radius=0.01, pose=vec(0,0,0), orient=vec(0,1,0)):
         self.inductance = inductance
         self.length = length
         self.radius = radius
         self.pose = pose
         self.orient = hat(orient)
+        self.wire_radius = wire_radius
         self.render_coil()
         return
     
@@ -46,28 +46,30 @@ class Inductor:
         self.coil.axis = self.orient
         self.coil.radius = self.radius
         self.coil.length = self.length*0.7
-        self.coil.thickness = self.radius*self.thickness_factor
+        self.coil.thickness = self.wire_radius*2
         self.coil.coils = self.get_n_coils(self.inductance, self.length, self.radius)
         
         self.wire1 = curve(
             pos=[
                 self.pose-0.5*self.orient*self.length,
                 self.pose-0.5*self.orient*self.length*0.7, 
-                rotate(self.pose-0.5*self.orient*self.length*0.7+hat(self.coil.up)*self.coil.radius, angle=pi/2, axis=self.coil.axis)
+                self.pose-0.5*self.orient*self.length*0.7+hat(self.coil.up)*self.coil.radius
                 ]
             )
         self.wire1.radius = self.coil.thickness/2
         self.wire1.color = COPPER
+        self.wire1.rotate(axis=self.orient, angle=pi/2, origin=self.pose)
         
         self.wire2 = curve(
             pos=[
                 self.pose+0.5*self.orient*self.length,
                 self.pose+0.5*self.orient*self.length*0.7, 
-                rotate(self.pose+0.5*self.orient*self.length*0.7+hat(self.coil.up)*self.coil.radius, angle=pi/2, axis=self.coil.axis)
+                self.pose+0.5*self.orient*self.length*0.7+hat(self.coil.up)*self.coil.radius
                 ]
             )
         self.wire2.radius = self.coil.thickness/2
         self.wire2.color = COPPER
+        self.wire2.rotate(axis=self.orient, angle=pi/2, origin=self.pose)
         
         return
     
@@ -77,8 +79,8 @@ class Inductor:
             self.b_field.visible = False
             
         self.b_field = arrow(
-                pos=self.pose-0.5*self.orient*current*0.05, 
-                axis=self.pose+self.orient*current*0.05,
+                pos=self.pose-self.orient*0.5*self.coil.length*current*0.05, 
+                axis=self.orient*self.coil.length*current*0.05,
                 color = color.blue,
                 round=True, 
                 headwidth=log(1+abs(0.015*current)),
@@ -94,21 +96,22 @@ class Capacitor:
     wire1 = None
     wire2 = None
     
-    plate_area_factor = 1e-10
+    plate_area_factor = 1e-9
     plate_thickness = 0.01
     wire_thickness = 0.25
-    wire_len = 0.25
     
-    dist = 0.025
+    dist = 0.05
     
     e_fields = []
-    e_field_density = 0.2
-    e_field_scale = 1e-3
+    e_field_density = 0.1
+    e_field_scale = 1e-2
     
-    def __init__(self, capacitance=1.0, radius=1.0, pose=vec(0,0,0), orient=vec(0,1,0)):
+    def __init__(self, capacitance=1.0, length=1.0, radius=1.0, pose=vec(0,0,0), orient=vec(0,1,0)):
         self.pose = pose
         self.radius = radius
         self.orient = hat(orient)
+        self.length = length
+        self.wire_len = length - (self.plate_thickness*2 + self.dist)/2
         self.capacitance = capacitance
         self.render_plates()
         return
@@ -126,7 +129,7 @@ class Capacitor:
         if (self.wire2 != None):
             self.wire2.visible = False
         
-        side_len = sqrt(self.capacitance*self.dist/e_0 * self.plate_area_factor)
+        side_len = sqrt(self.capacitance*self.dist/e_0 * self.plate_area_factor)*1.1
         
         self.plate1 = box(
             pos=self.pose+0.5*self.orient*self.dist, 
@@ -167,20 +170,25 @@ class Capacitor:
             for e in self.e_fields:
                 e.visible = False
             self.e_fields.clear()
-        
+            
         side_len = sqrt(self.capacitance*self.dist/e_0 * self.plate_area_factor)
-        
-        for x in range(-side_len, side_len, side_len*self.e_field_density):
-            for y in range(-side_len, side_len, side_len*self.e_field_density):
+            
+        x_axis = norm(self.plate1.axis)
+        y_axis = norm(cross(x_axis, self.plate1.up))
+            
+        for x in range(-side_len/2, side_len/2+side_len*self.e_field_density, side_len*self.e_field_density):
+            for y in range(-side_len/2, side_len/2+side_len*self.e_field_density, side_len*self.e_field_density):
                 a = arrow(
-                    pos=self.pose-0.5*(voltage/abs(voltage))*self.orient*self.dist,
-                    axis=self.pose+0.5*(voltage/abs(voltage))*self.orient*self.dist,
+                    pos=self.pose-0.5*(voltage/abs(voltage))*self.orient*(self.dist-self.plate_thickness) + x_axis*x + y_axis*y,
+                    axis=(voltage/abs(voltage))*self.orient*(self.dist-self.plate_thickness),
                     color=color.green,
                     round=True,
-                    shaftwidth=(voltage/self.dist)*self.e_field_scale*0.01,
-                    headwidth=(voltage/self.dist)*self.e_field_scale*0.025,
+                    shaftwidth=(abs(voltage)/self.dist)*self.e_field_scale*0.001,
+                    headwidth=(abs(voltage)/self.dist)*self.e_field_scale*0.003,
                     )
                 self.e_fields.append(a)
+                
+            
 
 class Resistor:
     def __init__(self):
