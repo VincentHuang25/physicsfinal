@@ -181,10 +181,7 @@ class Capacitor:
                     headwidth=(voltage/self.dist)*self.e_field_scale*0.025,
                     )
                 self.e_fields.append(a)
-                
-        
-                
-    
+
 class Resistor:
     def __init__(self):
         return
@@ -195,9 +192,96 @@ class Wire:
 
 
 def main():
-    c = Capacitor(capactiance=10e-6, radius=WIRE_RADIUS)
-    c.render_e_fields(5)
+    c = Capacitor(capacitance=10e-6, radius=WIRE_RADIUS)
+    c.render_e_fields(5)  
 
+#some variables
+R = 100
+L = 0.100
+C = 0.000000100
+t = 0
+q = 0.5
+i = 0.5
+dt = 0.000001
+
+def f1(q,i):
+    return i
+    
+def f2(q,i):
+    return -(R*i/L+q/L/C)
+
+def iRK4(q,i,dt):
+    k1 = dt*f1(q,i)
+    l1 = dt*f2(q,i)
+    k2 = dt*f1(q+k1/2,i+l1/2)
+    l2 = dt*f2(q+k1/2,i+l1/2)
+    k3 = dt*f1(q+k2/2,i+l2/2)
+    l3 = dt*f2(q+k2/2,i+l2/2)
+    k4 = dt*f1(q+k3,i+l3)
+    l4 = dt*f2(q+k3,i+l3)
+    k = (k1+2*k2+2*k3+k4)/6
+    l = (l1+2*l2+2*l3+l4)/6
+    q += k
+    i += l
+    return q,i
+    
+g1 = graph(title='My Graph', xtitle='time (s)', ytitle='current (i)',align="right")
+gc1 = gcurve(color=color.blue,graph=g1)
+    
+for j in range(10000):
+    q,i = iRK4(q,i,dt)
+    gc1.plot(t,i)
+    t += dt
 
 if __name__ == "__main__":
     main()
+
+scene.caption = "Vary the Inductance: \n"
+
+inductance_slider = slider( bind=inductance_set, min=0, max=50, step = 1, id = "inductance", value = 0, align = "left")
+
+wt = wtext(text='{:1.2f}'.format(inductance_slider.value))
+
+scene.append_to_caption(' Henrys\n')
+
+def inductance_set(evt):
+    console.log(evt)
+    wt.text = '{:1.2f}'.format(inductance_slider.value)
+    if evt.id is "inductance":
+        self.inductance = evt.value
+
+
+resistance_slider = slider( bind=resistance_set, min=0, max=50, step = 1, id = "resistance", align = "left")
+
+
+capacitance_slider = slider( bind=capacitance_set, min=0, max=50, step = 1, id = "capacitance", align = "left" )
+
+
+simulation_speed_slider = slider( bind=simulation_speed_set, min=0, max=50, step = 1, id = "simulation_speed", align = "left" )
+
+
+timestep_resolution_slider = slider( bind=timestep_resolution_set, min=0, max=50, step = 1, id = "timestep_resolution", align = "left")
+
+button(bind=reset, text="Reset")
+
+def reset():
+    pass
+
+button(bind=freeze, text="Freeze")
+
+def freeze():
+    pass
+
+        
+def resistance_set(evt):
+    pass
+
+def capacitance_set(evt):
+    pass
+
+def simulation_speed_set(evt):
+    pass
+
+def timestep_resolution_set(evt):
+    pass
+
