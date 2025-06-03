@@ -201,17 +201,103 @@ class Wire:
 
 def main():
     c = Capacitor(capacitance=10e-6, radius=WIRE_RADIUS)
-    c.render_e_fields(5)  
+    c.render_e_fields(5)
+
+if __name__ == "__main__":
+    main()
 
 
-#some variables
-R = 100
-L = 0.100
-C = 0.000000100
-t = 0
+R = 1
+L = 0.1
+C = 0.0001
+V = 1
 q = 0.5
 i = 0.5
 dt = 0.000001
+t = 0     
+
+wtext(text="Vary the Resistance: \n")
+resistance_slider = slider( bind=resistance_set, min=0, max=50, step = 1, id = "resistance")
+wt2=wtext(text='{:1.2f}'.format(resistance_slider.value))
+scene.append_to_caption(' Ohms\n')
+wtext(text='<br>')
+
+wtext(text="Vary the Inductance: \n")
+inductance_slider = slider( bind=inductance_set, min=0, max=50, step = 1, id = "inductance")
+wt1=wtext(text='{:1.2f}'.format(inductance_slider.value))
+scene.append_to_caption(' Henrys\n')
+wtext(text='<br>')
+
+wtext(text="Vary the Capacitance: \n")
+capacitance_slider = slider( bind=capacitance_set, min=0, max=50, step = 1, id = "capacitance")
+wt3=wtext(text='{:1.2f}'.format(capacitance_slider.value))
+scene.append_to_caption(' Farads\n')
+wtext(text='<br>')
+
+wtext(text="Vary the Capacitor Voltage: \n")
+capacitor_voltage_slider = slider( bind=capacitor_voltage_set, min=0, max=50, step = 1, id = "capacitor_voltage")
+wt4=wtext(text='{:1.2f}'.format(capacitor_voltage_slider.value))
+scene.append_to_caption(' Volts\n')
+wtext(text='<br>')
+
+wtext(text="Vary the Simulation Speed: \n", align="right")
+simulation_speed_slider = slider( bind=simulation_speed_set, min=0, max=50, step = 1, id = "simulation_speed")
+wtext(text='<br>')
+
+wtext(text="Vary the Time Step: \n")
+timestep_resolution_slider = slider( bind=timestep_resolution_set, min=0, max=50, step = 1, id = "timestep_resolution")
+wtext(text='<br>')
+
+def resistance_set(evt):
+    wt2.text = '{:1.2f}'.format(resistance_slider.value)
+    if evt.id is "resistance":
+        R = evt.value
+
+def inductance_set(evt):
+    console.log(evt)
+    wt1.text = '{:1.2f}'.format(inductance_slider.value)
+    if evt.id is "inductance":
+        L = evt.value
+
+def capacitance_set(evt):
+    wt3.text = '{:1.2f}'.format(capacitance_slider.value)
+    if evt.id is "capacitance":
+        C = evt.value
+
+def capacitor_voltage_set(evt):
+    wt4.text = '{:1.2f}'.format(capacitor_voltage_slider.value)
+    if evt.id is "capacitor_voltage":
+        V = evt.value
+
+def simulation_speed_set(evt):
+    wt.text = '{:1.2f}'.format(simulation_speed_slider.value)
+    if evt.id is "simulation_speed":
+        self_simulation_speed = evt.value
+
+def timestep_resolution_set(evt):
+    wt.text = '{:1.2f}'.format(timestep_resolution_slider.value)
+    if evt.id is "timestep_resolution":
+        self_timestep_resolution = evt.value
+        
+running = False
+
+def Run(b):
+    global running
+    running = not running
+    if running: b.text = "Pause"
+    else: b.text = "Run"
+button(text="Run", bind=Run)
+
+button(bind=reset, text="Reset")
+wtext(text='<br>')
+
+def reset():
+    g1.delete()
+    g2.delete()
+    g3.delete()
+    g4.delete()
+    running = False
+    pass
 
 def f1(q,i):
     return i
@@ -234,111 +320,28 @@ def iRK4(q,i,dt):
     i += l
     return q,i
     
-g1 = graph(title='Current vs Time', xtitle='Time (s)', ytitle='Current (i)', align='right')
+g1 = graph(title='Current vs Time', xtitle='Time (s)', ytitle='Current (i)', align='right', width=400, height=300)
 gc1 = gcurve(color=color.red,graph=g1)
 
-#Resistor
-g2 = graph(title='Voltage vs Time for Resistor', xtitle='Time (s)', ytitle='Voltage (i)')
+g2 = graph(title='Voltage vs Time for Resistor', xtitle='Time (s)', ytitle='Voltage (i)', align='right', width=400, height=300)
 gc2 = gcurve(color=color.green,graph=g2)
 
-#Inductor
-g3 = graph(title='Voltage vs Time for Inductor', xtitle='Time (s)', ytitle='Voltage (i)')
+g3 = graph(title='Voltage vs Time for Inductor', xtitle='Time (s)', ytitle='Voltage (i)', align='right', width=400, height=300)
 gc3 = gcurve(color=color.blue,graph=g3)
 i2=0
 
-#Capacitor
-g4 = graph(title='Voltage vs Time for Capacitor', xtitle='Time (s)', ytitle='Voltage (i)')
+g4 = graph(title='Voltage vs Time for Capacitor', xtitle='Time (s)', ytitle='Voltage (i)', align='right', width=400, height=300)
 gc4 = gcurve(color=color.yellow,graph=g4)
 i3=0
 
-for j in range(10000):
-    di2=i
-    i3+=i
-    q,i = iRK4(q,i,dt)
-    gc1.plot(t,i)
-    gc2.plot(t,i*R)
-    gc3.plot(t,(i-i2)/dt)
-    gc4.plot(t,i3)
-    t += dt
-
-if __name__ == "__main__":
-    main()
-
-wtext(text="Vary the Inductance: \n")
-inductance_slider = slider( bind=inductance_set, min=0, max=50, step = 1, id = "inductance", value = 0)
-wt=wtext(text='{:1.2f}'.format(inductance_slider.value))
-scene.append_to_caption(' Henrys\n')
-wtext(text='<br>')
-
-wtext(text="Vary the Resistance: \n")
-resistance_slider = slider( bind=resistance_set, min=0, max=50, step = 1, id = "resistance", value = 0)
-wt=wtext(text='{:1.2f}'.format(resistance_slider.value))
-scene.append_to_caption(' Ohms\n')
-wtext(text='<br>')
-
-wtext(text="Vary the Capacitance: \n")
-capacitance_slider = slider( bind=capacitance_set, min=0, max=50, step = 1, id = "capacitance", value = 0)
-wt=wtext(text='{:1.2f}'.format(capacitance_slider.value))
-scene.append_to_caption(' Farads\n')
-wtext(text='<br>')
-
-wtext(text="Vary the Capacitor Voltage: \n")
-capacitor_voltage_slider = slider( bind=capacitor_voltage_set, min=0, max=50, step = 1, id = "capacitor_voltage", value = 0)
-wt=wtext(text='{:1.2f}'.format(capacitor_voltage_slider.value))
-scene.append_to_caption(' Volts\n')
-wtext(text='<br>')
-
-wtext(text="Vary the Simulation Speed: \n", align="right")
-simulation_speed_slider = slider( bind=simulation_speed_set, min=0, max=50, step = 1, id = "simulation_speed", value = 0)
-wtext(text='<br>')
-
-wtext(text="Vary the Time Step: \n")
-timestep_resolution_slider = slider( bind=timestep_resolution_set, min=0, max=50, step = 1, id = "timestep_resolution", value = 0)
-wtext(text='<br>')
-
-
-def inductance_set(evt):
-    console.log(evt)
-    wt.text = '{:1.2f}'.format(inductance_slider.value)
-    if evt.id is "inductance":
-        self_inductance = evt.value
-
-def resistance_set(evt):
-    wt.text = '{:1.2f}'.format(resistance_slider.value)
-    if evt.id is "resistance":
-        self_resistance = evt.value
-
-def capacitance_set(evt):
-    wt.text = '{:1.2f}'.format(capacitance_slider.value)
-    if evt.id is "capacitance":
-        self_capacitance = evt.value
-
-def capacitor_voltage_set(evt):
-    wt.text = '{:1.2f}'.format(capacitor_voltage_slider.value)
-    if evt.id is "capacitor_voltage":
-        self_capacitor_voltage = evt.value
-
-def simulation_speed_set(evt):
-    wt.text = '{:1.2f}'.format(simulation_speed_slider.value)
-    if evt.id is "simulation_speed":
-        self_simulation_speed = evt.value
-
-def timestep_resolution_set(evt):
-    wt.text = '{:1.2f}'.format(timestep_resolution_slider.value)
-    if evt.id is "timestep_resolution":
-        self_timestep_resolution = evt.value
-        
-        
-running = True
-def Run(b):
-    global running
-    running = not running
-    if running: b.text = "Pause"
-    else: b.text = "Run"
-button(text="Pause", bind=Run)
-
-button(bind=reset, text="Reset")
-wtext(text='<br>')
-
-def reset():
-    pass
+while True:
+    rate(1/dt)
+    if running:
+        di2=i
+        i3+=i
+        q,i = iRK4(q,i,dt)
+        gc1.plot(t,i)
+        gc2.plot(t,i*R)
+        gc3.plot(t,(i-i2)/dt)
+        gc4.plot(t,i3)
+        t += dt
