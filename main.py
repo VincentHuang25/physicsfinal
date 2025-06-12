@@ -1,5 +1,7 @@
 Web VPython 3.2
 
+canvas(width=1000, height=850, align='left')
+
 COPPER = vec(184/255, 115/255, 51/255)
 ALUMINUM = vec(211/255, 211/255, 211/255)
 RESISTOR = vec(255/255,249/255,230/255)
@@ -515,47 +517,61 @@ def main():
     dt = 0.00001
     t = 0
     simulation_speed = 1000
-    time_step = 1
-    
     running = False
+    
+    g1 = graph(title='Current vs Time', xtitle='Time (s)', ytitle='Current (A)', width=320, height=180, align='left')
+    gc1 = gcurve(color=color.red,graph=g1)
+    
+    g2 = graph(title='Voltage vs Time for Resistor', xtitle='Time (s)', ytitle='Voltage (V)', width=320, height=180, align='left')
+    gc2 = gcurve(color=color.green,graph=g2)
+    
+    g3 = graph(title='Voltage vs Time for Inductor', xtitle='Time (s)', ytitle='Voltage (V)', width=320, height=180, align='left')
+    gc3 = gcurve(color=color.blue,graph=g3)
+    i2=0
+    
+    g4 = graph(title='Voltage vs Time for Capacitor', xtitle='Time (s)', ytitle='Voltage (V)', width=320, height=180, align='left')
+    gc4 = gcurve(color=color.yellow,graph=g4)
     
     #Functions for input
     
     # Create sliders and buttons
-    wtext(text="Resistance: \n")
+    wtext(text="Resistance (in ohms): \n")
     resistance_slider = slider( bind=handle_evt, min=1, max=1000, step = 1, id = "resistance")
     wt1=wtext(text='{:1.2f}'.format(resistance_slider.value))
     scene.append_to_caption(' ohms\n')
     wtext(text='<br>')
+    wtext(text='<br>')
     
-    wtext(text="Inductance: \n")
+    wtext(text="Inductance (in millihenrys): \n")
     inductance_slider = slider( bind=handle_evt, min=10, max=1000, step = 1, id = "inductance")
     wt2=wtext(text='{:1.2f}'.format(inductance_slider.value))
-    scene.append_to_caption(' millihenrys\n')
+    wtext(text='<br>')
     wtext(text='<br>')
     
-    wtext(text="Capacitance: \n")
+    wtext(text="Capacitance (in microfarads): \n")
     capacitance_slider = slider( bind=handle_evt, min=10, max=1000, step = 1, id = "capacitance")
     wt3=wtext(text='{:1.2f}'.format(capacitance_slider.value))
-    scene.append_to_caption(' microfarads\n')
+    wtext(text='<br>')
     wtext(text='<br>')
     
-    wtext(text="Vary the Capacitor Voltage: \n")
+    wtext(text="Capacitor Voltage (in volts): \n")
     capacitor_voltage_slider = slider( bind=handle_evt, min=1, max=50, step = 1, id = "capacitor_voltage")
     wt4=wtext(text='{:1.2f}'.format(capacitor_voltage_slider.value))
-    scene.append_to_caption(' volts\n')
+    wtext(text='<br>')
     wtext(text='<br>')
     
-    wtext(text="Vary the Simulation Speed: \n")
+    wtext(text="Simulation Speed: \n")
     simulation_speed_slider = slider( bind=handle_evt, min=10, max=100, step = 1, id = "simulation_speed")
     wt5=wtext(text='{:1.2f}'.format(simulation_speed_slider.value))
     scene.append_to_caption(' \n')
     wtext(text='<br>')
+    wtext(text='<br>')
     
-    wtext(text="Vary the Time Step: \n")
+    wtext(text="Time Step: \n")
     time_step_slider = slider( bind=handle_evt, min=1, max=100, step = 1, id = "time_step")
     wt6=wtext(text='{:1.2f}'.format(time_step_slider.value))
     scene.append_to_caption(' microseconds\n')
+    wtext(text='<br>')
     wtext(text='<br>')
     
     run = button(text="Run", bind=run)
@@ -563,6 +579,8 @@ def main():
     wtext(text='<br>')
     
     button(bind=reset, text="Reset")
+    wtext(text='<br>')
+    wtext(text='<br>')
     
     #define classes for objects
     c_obj = Capacitor(capacitance=C, length=0.5, radius=WIRE_RADIUS, pose=vec(-2,0,0))
@@ -615,7 +633,7 @@ def main():
         
         else if evt.id is "simulation_speed":
             wt5.text = '{:1.2f}'.format(simulation_speed_slider.value)
-            simulation_speed = evt.value * 100
+            simulation_speed = evt.value * 1e20
             return
         
         else if evt.id is "time_step":
@@ -647,19 +665,6 @@ def main():
         for w in wires:
             w.render_current(0)
         return
-      
-    g1 = graph(title='Current vs Time', xtitle='Time (s)', ytitle='Current (A)', width=400, height=300, align='left')
-    gc1 = gcurve(color=color.red,graph=g1)
-    
-    g2 = graph(title='Voltage vs Time for Resistor', xtitle='Time (s)', ytitle='Voltage (V)', width=400, height=300, align='left')
-    gc2 = gcurve(color=color.green,graph=g2)
-    
-    g3 = graph(title='Voltage vs Time for Inductor', xtitle='Time (s)', ytitle='Voltage (V)', width=400, height=300, align='left')
-    gc3 = gcurve(color=color.blue,graph=g3)
-    i2=0
-    
-    g4 = graph(title='Voltage vs Time for Capacitor', xtitle='Time (s)', ytitle='Voltage (V)', width=400, height=300, align='left')
-    gc4 = gcurve(color=color.yellow,graph=g4)
     
     while True:
         rate(simulation_speed)
@@ -671,13 +676,17 @@ def main():
             gc3.plot(t,(i-i2)/dt*L)
             gc4.plot(t,q/C)
             t += dt
-            
             c_obj.render_e_fields(-i*R)
             l_obj.render_b_field(i)
             r_obj.render_power(i, 0.01)
             
             for w in wires:
                 w.render_current(i)
+            
+
+if __name__ == "__main__":
+    main()
+
             
 
 if __name__ == "__main__":
