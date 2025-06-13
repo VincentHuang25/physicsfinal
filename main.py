@@ -24,40 +24,32 @@ class Node:
         self.pose = pose
         self.orient = hat(orient)
         self.ball = None
-        self.FUCKYOU = None
+        self.label = None
         self.voltage = 0
         self.current = 0
-        self.render_ball(False)
+        self.render_ball()
         return
     
-    def render_ball(self, selected):
+    def render_ball(self):
         if (self.ball != None):
             self.ball.visible = False
             
-        if (self.FUCKYOU != None):
-            self.FUCKYOU.visible = False
+        if (self.label != None):
+            self.label.visible = False
             
         self.ball = sphere(pos=self.pose, radius=self.radius, color=self.clr, opacity = 0.75)
         
-        if (selected == True):
-            self.FUCKYOU = text(
-                text=self.name, 
-                pos=self.pose+self.text_dist_factor*self.radius*self.orient,
-                color = color.yellow,
-                align = 'center'
-                )
-        else:
-            self.FUCKYOU = text(
-                text=self.name, 
-                pos=self.pose+self.text_dist_factor*self.radius*self.orient,
-                color = color.white,
-                align = 'center'
-                )
+        self.label = text(
+            text=self.name, 
+            pos=self.pose+self.text_dist_factor*self.radius*self.orient,
+            color = color.white,
+            align = 'center'
+            )
 
-        self.FUCKYOU.pos = self.FUCKYOU.pos - 0.5*self.radius*hat(cross(self.FUCKYOU.axis, self.FUCKYOU.up))
-        self.FUCKYOU.length = 3*self.radius
-        self.FUCKYOU.height = 3.5*self.radius
-        self.FUCKYOU.depth = 1*self.radius
+        self.label.pos = self.label.pos - 0.5*self.radius*hat(cross(self.label.axis, self.label.up))
+        self.label.length = 3*self.radius
+        self.label.height = 3.5*self.radius
+        self.label.depth = 1*self.radius
 
 class Inductor:
     b_field_scale = 3.5e2
@@ -129,7 +121,11 @@ class Inductor:
         if (self.b_field != None):
             self.b_field.visible = False
         
+        if (abs(current) > 0.1):
+            current = 0.1*abs(current)/current
+            
         current *= self.b_field_scale
+
             
         self.b_field = arrow(
                 pos=self.pose+self.orient*0.5*self.coil.length*current*0.05, 
@@ -238,8 +234,8 @@ class Capacitor:
                     axis=(voltage/abs(voltage))*self.orient*(self.dist-self.plate_thickness),
                     color=color.green,
                     round=True,
-                    shaftwidth=log(1 + (abs(voltage)/self.dist)*self.e_field_scale),
-                    headwidth=log(1 + (abs(voltage)/self.dist)*self.e_field_scale)*2,
+                    shaftwidth=log(1 + (abs(voltage)/self.dist)*self.e_field_scale*log(1+self.capacitance*10e3)),
+                    headwidth=log(1 + (abs(voltage)/self.dist)*self.e_field_scale*log(1+self.capacitance*10e3))*2,
                     )
                 self.e_fields.append(a)
                 
@@ -403,8 +399,10 @@ class Resistor:
 
         self._emission_timer += dt
         new_arrows = int(self._emission_timer * emission_rate)
+        if (new_arrows > 5):
+            new_arrows = 5
         self._emission_timer -= new_arrows / emission_rate if emission_rate else 0
-
+        
         for _ in range(new_arrows):
             dir = self.random_unit_vector()
             start_pos = self.pose 
@@ -414,22 +412,22 @@ class Resistor:
                 color=color.red,
                 shaftwidth=self.arrow_scale,
                 headwidth=self.arrow_scale * 2,
-                emissive=True
+                    emissive=True
             )
             arr.velocity = dir * self.arrow_speed
             arr.origin = vector(start_pos)
             self.arrows.append(arr)
-
+    
         for arr in self.arrows[:]:
             arr.pos += arr.velocity * dt
             displacement = mag(arr.pos - arr.origin)
             fade = max(0, 1 - displacement / self.arrow_despawn_radius)
-
+            
             arr.axis = norm(arr.velocity) * self.arrow_length * fade
             arr.color = vec(fade, 0, 0)
             arr.shininess = fade
             arr.opacity = fade
-
+    
             if displacement > self.arrow_despawn_radius:
                 arr.visible = False
                 self.arrows.remove(arr)
@@ -599,13 +597,13 @@ def main():
     wtext(text='<br>')
     
     wtext(text="Capacitance (in microfarads): \n")
-    capacitance_slider = slider( bind=handle_evt, min=10, max=1000, value=C*10e6,step = 1, id = "capacitance")
+    capacitance_slider = slider( bind=handle_evt, min=10, max=500, value=C*10e6,step = 1, id = "capacitance")
     wt3=wtext(text='{:1.2f}'.format(capacitance_slider.value))
     wtext(text='<br>')
     wtext(text='<br>')
     
     wtext(text="Capacitor Voltage (in volts): \n")
-    capacitor_voltage_slider = slider( bind=handle_evt, min=1, max=50, value=V,step = 1, id = "capacitor_voltage")
+    capacitor_voltage_slider = slider( bind=handle_evt, min=1, max=25, value=V,step = 1, id = "capacitor_voltage")
     wt4=wtext(text='{:1.2f}'.format(capacitor_voltage_slider.value))
     wtext(text='<br>')
     wtext(text='<br>')
@@ -618,8 +616,6 @@ def main():
     wtext(text='<br>')
     
     run = button(text="Run", bind=run, background = vector(0,1,0))
-    wtext(text='<br>')
-    wtext(text='<br>')
     
     button(bind=reset, text="Reset", background=vector(1,0,0))
     wtext(text='<br>')
@@ -661,129 +657,59 @@ def main():
     
     def select_node1(m):
         global node1, node2, graphmode, gc1, gc2
-        a = False
-        b = False
-        c = False
         node1 = str(m.selected)[0]
         if (node1 == "A") and (node2 == "B"):
             graphmode = 1
-            a = True
-            b = True
-            c = False
         else if (node1 == "B") and (node2 == "A"):
             graphmode = 2
-            a = True
-            b = True
-            c = False
         else if (node1 == "A") and (node2 == "C"):
             graphmode = 3
-            a = True
-            b = False
-            c = True
         else if (node1 == "C") and (node2 == "A"):
-            a = True
-            b = False
-            c = True
             graphmode = 4
         else if (node1 == "B") and (node2 == "C"):
-            a = False
-            b = True
-            c = True 
             graphmode = 5
         else if (node1 == "C") and (node2 == "B"):
-            a = False
-            b = True
-            c = True
             graphmode = 6
         else if (node1 == "A") and (node2 == "A"):
-            a = True
-            b = False
-            c = False
             graphmode = 7
         else if (node1 == "B") and (node2 == "B"):
-            a = False
-            b = True
-            c = False
             graphmode = 7
         else if (node1 == "C") and (node2 == "C"):
-            a = False
-            b = False
-            c = True
             graphmode = 7
         else:
-            a = False
-            b = False
-            c = False
             graphmode = 0
             
-        a_node_obj.render_ball(a)
-        b_node_obj.render_ball(b)
-        c_node_obj.render_ball(c)
         gc1.delete()
         gc2.delete()
+        return
        
     def select_node2(m):
         global node1, node2, graphmode, gc1, gc2
         node2 = str(m.selected)[0]
-        a = False
-        b = False
-        c = False
         if (node1 == "A") and (node2 == "B"):
             graphmode = 1
-            a = True
-            b = True
-            c = False
         else if (node1 == "B") and (node2 == "A"):
             graphmode = 2
-            a = True
-            b = True
-            c = False
         else if (node1 == "A") and (node2 == "C"):
             graphmode = 3
-            a = True
-            b = False
-            c = True
         else if (node1 == "C") and (node2 == "A"):
-            a = True
-            b = False
-            c = True
             graphmode = 4
         else if (node1 == "B") and (node2 == "C"):
-            a = False
-            b = True
-            c = True 
             graphmode = 5
         else if (node1 == "C") and (node2 == "B"):
-            a = False
-            b = True
-            c = True
             graphmode = 6
         else if (node1 == "A") and (node2 == "A"):
-            a = True
-            b = False
-            c = False
             graphmode = 7
         else if (node1 == "B") and (node2 == "B"):
-            a = False
-            b = True
-            c = False
             graphmode = 7
         else if (node1 == "C") and (node2 == "C"):
-            a = False
-            b = False
-            c = True
             graphmode = 7
         else:
-            a = False
-            b = False
-            c = False
             graphmode = 0
     
-        a_node_obj.render_ball(a)
-        b_node_obj.render_ball(b)
-        c_node_obj.render_ball(c)
         gc1.delete()
         gc2.delete()
+        return
     
     def handle_evt(evt):
         global R,L,C,q,V,simulation_speed,dt
