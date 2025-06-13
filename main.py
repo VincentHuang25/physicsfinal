@@ -39,9 +39,6 @@ class Node:
             
         self.ball = sphere(pos=self.pose, radius=self.radius, color=self.clr, opacity = 0.75)
         
-        print("FKWAFHWAUFHAUF")
-        print(self.name)
-        print(self.pose+self.text_dist_factor*self.radius*self.orient)
         if (selected == True):
             self.FUCKYOU = text(
                 text=self.name, 
@@ -56,7 +53,6 @@ class Node:
                 color = color.white,
                 align = 'center'
                 )
-        print("FUCKFUCKUFCK")
 
         self.FUCKYOU.pos = self.FUCKYOU.pos - 0.5*self.radius*hat(cross(self.FUCKYOU.axis, self.FUCKYOU.up))
         self.FUCKYOU.length = 3*self.radius
@@ -720,18 +716,14 @@ def main():
             c = False
             graphmode = 0
             
-        if (node1 in ["A", "B", "C"]) and (node2 in ["A", "B", "C"]):
-            print(node1, node2)
-            print("rendering")
-            a_node_obj.render_ball(a)
-            b_node_obj.render_ball(b)
-            c_node_obj.render_ball(c)
-            print("rendered")
-            gc1.delete()
-            gc2.delete()
+        a_node_obj.render_ball(a)
+        b_node_obj.render_ball(b)
+        c_node_obj.render_ball(c)
+        gc1.delete()
+        gc2.delete()
        
     def select_node2(m):
-        global node1, node2, graphmode
+        global node1, node2, graphmode, gc1, gc2
         node2 = str(m.selected)[0]
         a = False
         b = False
@@ -786,16 +778,12 @@ def main():
             b = False
             c = False
             graphmode = 0
-        
-        if (node1 in ["A", "B", "C"]) and (node2 in ["A", "B", "C"]):
-            print(node1, node2)
-            print("rendering")
-            a_node_obj.render_ball(a)
-            b_node_obj.render_ball(b)
-            c_node_obj.render_ball(c)
-            print("rendered")
-            gc1.delete()
-            gc2.delete()
+    
+        a_node_obj.render_ball(a)
+        b_node_obj.render_ball(b)
+        c_node_obj.render_ball(c)
+        gc1.delete()
+        gc2.delete()
     
     def handle_evt(evt):
         global R,L,C,q,V,simulation_speed,dt
