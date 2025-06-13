@@ -1,6 +1,7 @@
 Web VPython 3.2
 
-canvas(width=1000, height=850, align='left')
+scene = canvas(width=750, height=500, align='left')
+scene.range = 2.5
 
 COPPER = vec(184/255, 115/255, 51/255)
 ALUMINUM = vec(211/255, 211/255, 211/255)
@@ -14,8 +15,56 @@ from vpython import *
 
 #class shit
 
+class Node:
+    text_dist_factor = 1.5
+    def __init__(self, clr=color.red, name="Node", radius=1.0, pose=vec(0,0,0), orient=vec(0,1,0)):
+        self.clr = clr
+        self.name = name 
+        self.radius = radius
+        self.pose = pose
+        self.orient = hat(orient)
+        self.ball = None
+        self.FUCKYOU = None
+        self.voltage = 0
+        self.current = 0
+        self.render_ball(False)
+        return
+    
+    def render_ball(self, selected):
+        if (self.ball != None):
+            self.ball.visible = False
+            
+        if (self.FUCKYOU != None):
+            self.FUCKYOU.visible = False
+            
+        self.ball = sphere(pos=self.pose, radius=self.radius, color=self.clr, opacity = 0.75)
+        
+        print("FKWAFHWAUFHAUF")
+        print(self.name)
+        print(self.pose+self.text_dist_factor*self.radius*self.orient)
+        if (selected == True):
+            self.FUCKYOU = text(
+                text=self.name, 
+                pos=self.pose+self.text_dist_factor*self.radius*self.orient,
+                color = color.yellow,
+                align = 'center'
+                )
+        else:
+            self.FUCKYOU = text(
+                text=self.name, 
+                pos=self.pose+self.text_dist_factor*self.radius*self.orient,
+                color = color.white,
+                align = 'center'
+                )
+        print("FUCKFUCKUFCK")
+
+        self.FUCKYOU.pos = self.FUCKYOU.pos - 0.5*self.radius*hat(cross(self.FUCKYOU.axis, self.FUCKYOU.up))
+        self.FUCKYOU.length = 3*self.radius
+        self.FUCKYOU.height = 3.5*self.radius
+        self.FUCKYOU.depth = 1*self.radius
+
 class Inductor:
-    b_field_scale = 5e2
+    b_field_scale = 3.5e2
     coil_down_factor = 2.5e-2
     
     def __init__(self, inductance=1.0, length=1.0, radius=1.0, wire_radius=0.01, pose=vec(0,0,0), orient=vec(0,1,0)):
@@ -87,12 +136,13 @@ class Inductor:
         current *= self.b_field_scale
             
         self.b_field = arrow(
-                pos=self.pose-self.orient*0.5*self.coil.length*current*0.05, 
-                axis=self.orient*self.coil.length*current*0.05,
+                pos=self.pose+self.orient*0.5*self.coil.length*current*0.05, 
+                axis=-self.orient*self.coil.length*current*0.05,
                 color = color.blue,
                 round=True, 
                 headwidth=log(1+abs(0.015*current)),
                 shaftwidth=log(1+abs(0.005*current)),
+                emmisive=True
                 )
         
         return
@@ -100,14 +150,14 @@ class Inductor:
    
 
 class Capacitor: 
-    plate_area_factor = 1e-5
+    plate_area_factor = 5e-6
     plate_thickness = 0.025
     wire_thickness = 0.25
     
     dist = 0.25
     
-    e_field_density = 0.25
-    e_field_scale = 10
+    e_field_density = 0.15
+    e_field_scale = 1e-3
     
     def __init__(self, capacitance=1.0, length=1.0, radius=1.0, pose=vec(0,0,0), orient=vec(0,1,0)):
         self.pose = pose
@@ -174,6 +224,7 @@ class Capacitor:
         return
     
     def render_e_fields(self, voltage):
+        voltage = -voltage
         if len(self.e_fields) > 0:
             for e in self.e_fields:
                 e.visible = False
@@ -191,8 +242,8 @@ class Capacitor:
                     axis=(voltage/abs(voltage))*self.orient*(self.dist-self.plate_thickness),
                     color=color.green,
                     round=True,
-                    shaftwidth=(abs(voltage)/self.dist)*self.e_field_scale*0.001,
-                    headwidth=(abs(voltage)/self.dist)*self.e_field_scale*0.003,
+                    shaftwidth=log(1 + (abs(voltage)/self.dist)*self.e_field_scale),
+                    headwidth=log(1 + (abs(voltage)/self.dist)*self.e_field_scale)*2,
                     )
                 self.e_fields.append(a)
                 
@@ -202,9 +253,8 @@ class Resistor:
     band_thickness_factor = 0.055
     
     power_vector_density = 0.25
-    power_scale = 1e5
+    power_scale = 2e5
     
-
     arrow_despawn_radius = 2.0  # Distance from center to remove arrow
     
     arrow_length = 0.2
@@ -505,7 +555,6 @@ def iRK4(q,i,R,L,C,dt):
     
     return q,i
 
-    
 def main():
     #Var
     R = 10
@@ -519,51 +568,49 @@ def main():
     simulation_speed = 1000
     running = False
     
-    g1 = graph(title='Current vs Time', xtitle='Time (s)', ytitle='Current (A)', width=320, height=180, align='left')
+    graphmode = 0
+    # 0 -> None
+    # 1 -> AB, BA
+    # 2 -> AC, CA
+    # 3 -> BC, CB,
+    # 4 -> Other combos invalid
+    
+    node1 = ""
+    node2 = ""
+    
+    g1 = graph(title='i(t)', xtitle='Time (s)', ytitle='Current (A)', width=320, height=180, align='left')
     gc1 = gcurve(color=color.red,graph=g1)
     
-    g2 = graph(title='Voltage vs Time for Resistor', xtitle='Time (s)', ytitle='Voltage (V)', width=320, height=180, align='left')
-    gc2 = gcurve(color=color.green,graph=g2)
+    g2 = graph(title='V(t)', xtitle='Time (s)', ytitle='Voltage (V)', width=320, height=180, align='left')
+    gc2 = gcurve(color=color.blue,graph=g2)
     
-    g3 = graph(title='Voltage vs Time for Inductor', xtitle='Time (s)', ytitle='Voltage (V)', width=320, height=180, align='left')
-    gc3 = gcurve(color=color.blue,graph=g3)
     i2=0
-    
-    g4 = graph(title='Voltage vs Time for Capacitor', xtitle='Time (s)', ytitle='Voltage (V)', width=320, height=180, align='left')
-    gc4 = gcurve(color=color.yellow,graph=g4)
     
     #Functions for input
     
     # Create sliders and buttons
     wtext(text="Resistance (in ohms): \n")
-    resistance_slider = slider( bind=handle_evt, min=1, max=1000, step = 1, id = "resistance")
+    resistance_slider = slider( bind=handle_evt, min=1, max=1000, value=R, step = 1, id = "resistance")
     wt1=wtext(text='{:1.2f}'.format(resistance_slider.value))
     scene.append_to_caption(' ohms\n')
     wtext(text='<br>')
     wtext(text='<br>')
     
     wtext(text="Inductance (in millihenrys): \n")
-    inductance_slider = slider( bind=handle_evt, min=10, max=1000, step = 1, id = "inductance")
+    inductance_slider = slider( bind=handle_evt, min=10, max=2500, value=1000, step = 1, id = "inductance")
     wt2=wtext(text='{:1.2f}'.format(inductance_slider.value))
     wtext(text='<br>')
     wtext(text='<br>')
     
     wtext(text="Capacitance (in microfarads): \n")
-    capacitance_slider = slider( bind=handle_evt, min=10, max=1000, step = 1, id = "capacitance")
+    capacitance_slider = slider( bind=handle_evt, min=10, max=1000, value=C*10e6,step = 1, id = "capacitance")
     wt3=wtext(text='{:1.2f}'.format(capacitance_slider.value))
     wtext(text='<br>')
     wtext(text='<br>')
     
     wtext(text="Capacitor Voltage (in volts): \n")
-    capacitor_voltage_slider = slider( bind=handle_evt, min=1, max=50, step = 1, id = "capacitor_voltage")
+    capacitor_voltage_slider = slider( bind=handle_evt, min=1, max=50, value=V,step = 1, id = "capacitor_voltage")
     wt4=wtext(text='{:1.2f}'.format(capacitor_voltage_slider.value))
-    wtext(text='<br>')
-    wtext(text='<br>')
-    
-    wtext(text="Simulation Speed: \n")
-    simulation_speed_slider = slider( bind=handle_evt, min=10, max=100, step = 1, id = "simulation_speed")
-    wt5=wtext(text='{:1.2f}'.format(simulation_speed_slider.value))
-    scene.append_to_caption(' \n')
     wtext(text='<br>')
     wtext(text='<br>')
     
@@ -574,13 +621,24 @@ def main():
     wtext(text='<br>')
     wtext(text='<br>')
     
-    run = button(text="Run", bind=run)
+    run = button(text="Run", bind=run, background = vector(0,1,0))
     wtext(text='<br>')
     wtext(text='<br>')
     
-    button(bind=reset, text="Reset")
+    button(bind=reset, text="Reset", background=vector(1,0,0))
     wtext(text='<br>')
     wtext(text='<br>')
+    
+    choices = ['None', 'A', 'B', 'C']
+    
+    selected1 = wtext(text='Node 1:     ')
+    menu(bind=select_node1, choices=choices, index=0)
+    
+    wtext(text='    ')  # Spacer
+
+    selected2 = wtext(text='Node 2:     ')
+    menu(bind=select_node2, choices=choices, index=0)
+    
     
     #define classes for objects
     c_obj = Capacitor(capacitance=C, length=0.5, radius=WIRE_RADIUS, pose=vec(-2,0,0))
@@ -595,10 +653,149 @@ def main():
     wires.append(Wire(length=0.5, wire_radius=WIRE_RADIUS, pose=vec(2, -0.75, 0), orient=vec(0, 1, 0)))
     wires.append(Wire(length=0.5, wire_radius=WIRE_RADIUS, pose=vec(2, 0.75, 0), orient=vec(0, 1, 0)))
     
+    #add nodes
+    a_node_obj = Node(clr=color.red, name="A", radius=0.075, pose=vec(-2, 1, 0), orient=vec(0,1,0))
+    b_node_obj = Node(clr=color.blue, name="B", radius=0.075, pose=vec(2, 1, 0), orient=vec(0,1,0))
+    c_node_obj = Node(clr=color.green, name="C", radius=0.075, pose=vec(0, -1, 0), orient=vec(0,1,0))
+    
     #init
     for w in wires:
         w.render_current(i)
     c_obj.render_e_fields(V)
+    
+    def select_node1(m):
+        global node1, node2, graphmode, gc1, gc2
+        a = False
+        b = False
+        c = False
+        node1 = str(m.selected)[0]
+        if (node1 == "A") and (node2 == "B"):
+            graphmode = 1
+            a = True
+            b = True
+            c = False
+        else if (node1 == "B") and (node2 == "A"):
+            graphmode = 2
+            a = True
+            b = True
+            c = False
+        else if (node1 == "A") and (node2 == "C"):
+            graphmode = 3
+            a = True
+            b = False
+            c = True
+        else if (node1 == "C") and (node2 == "A"):
+            a = True
+            b = False
+            c = True
+            graphmode = 4
+        else if (node1 == "B") and (node2 == "C"):
+            a = False
+            b = True
+            c = True 
+            graphmode = 5
+        else if (node1 == "C") and (node2 == "B"):
+            a = False
+            b = True
+            c = True
+            graphmode = 6
+        else if (node1 == "A") and (node2 == "A"):
+            a = True
+            b = False
+            c = False
+            graphmode = 7
+        else if (node1 == "B") and (node2 == "B"):
+            a = False
+            b = True
+            c = False
+            graphmode = 7
+        else if (node1 == "C") and (node2 == "C"):
+            a = False
+            b = False
+            c = True
+            graphmode = 7
+        else:
+            a = False
+            b = False
+            c = False
+            graphmode = 0
+            
+        if (node1 in ["A", "B", "C"]) and (node2 in ["A", "B", "C"]):
+            print(node1, node2)
+            print("rendering")
+            a_node_obj.render_ball(a)
+            b_node_obj.render_ball(b)
+            c_node_obj.render_ball(c)
+            print("rendered")
+            gc1.delete()
+            gc2.delete()
+       
+    def select_node2(m):
+        global node1, node2, graphmode
+        node2 = str(m.selected)[0]
+        a = False
+        b = False
+        c = False
+        if (node1 == "A") and (node2 == "B"):
+            graphmode = 1
+            a = True
+            b = True
+            c = False
+        else if (node1 == "B") and (node2 == "A"):
+            graphmode = 2
+            a = True
+            b = True
+            c = False
+        else if (node1 == "A") and (node2 == "C"):
+            graphmode = 3
+            a = True
+            b = False
+            c = True
+        else if (node1 == "C") and (node2 == "A"):
+            a = True
+            b = False
+            c = True
+            graphmode = 4
+        else if (node1 == "B") and (node2 == "C"):
+            a = False
+            b = True
+            c = True 
+            graphmode = 5
+        else if (node1 == "C") and (node2 == "B"):
+            a = False
+            b = True
+            c = True
+            graphmode = 6
+        else if (node1 == "A") and (node2 == "A"):
+            a = True
+            b = False
+            c = False
+            graphmode = 7
+        else if (node1 == "B") and (node2 == "B"):
+            a = False
+            b = True
+            c = False
+            graphmode = 7
+        else if (node1 == "C") and (node2 == "C"):
+            a = False
+            b = False
+            c = True
+            graphmode = 7
+        else:
+            a = False
+            b = False
+            c = False
+            graphmode = 0
+        
+        if (node1 in ["A", "B", "C"]) and (node2 in ["A", "B", "C"]):
+            print(node1, node2)
+            print("rendering")
+            a_node_obj.render_ball(a)
+            b_node_obj.render_ball(b)
+            c_node_obj.render_ball(c)
+            print("rendered")
+            gc1.delete()
+            gc2.delete()
     
     def handle_evt(evt):
         global R,L,C,q,V,simulation_speed,dt
@@ -621,14 +818,14 @@ def main():
             C = evt.value*1e-6
             c_obj.capacitance = evt.value * 1e-6
             c_obj.render_plates()
-            c_obj.render_e_fields(-V)
+            c_obj.render_e_fields(V)
             return
         
         else if evt.id is "capacitor_voltage":
             wt4.text = '{:1.2f}'.format(capacitor_voltage_slider.value)
             V = evt.value
             q = C*V
-            c_obj.render_e_fields(-V)
+            c_obj.render_e_fields(V)
             return
         
         else if evt.id is "simulation_speed":
@@ -642,21 +839,29 @@ def main():
             return
         
         return
-    
+
     def run(r):
         global running
         running = not running
-        if running: r.text = "Pause"
-        else: r.text = "Run"
+        if running: 
+            r.text = "Pause"
+            resistance_slider.disabled = True
+            inductance_slider.disabled = True
+            capacitance_slider.disabled = True
+            capacitor_voltage_slider.disabled = True
+        else: 
+            r.text = "Run"
+            resistance_slider.disabled = False
+            inductance_slider.disabled = False
+            capacitance_slider.disabled = False
+            capacitor_voltage_slider.disabled = False
         return
     
     def reset():
         global R,L,C,V,q,i,dt,t
-        global gc1,gc2,gc3,gc4
+        global gc1,gc2
         gc1.delete()
         gc2.delete()
-        gc3.delete()
-        gc4.delete()
         q = C*V
         i = 0
         t = 0
@@ -671,23 +876,35 @@ def main():
         if running:
             i2=i
             q,i = iRK4(q,i,R,L,C,dt)
-            gc1.plot(t,i)
-            gc2.plot(t,i*R)
-            gc3.plot(t,(i-i2)/dt*L)
-            gc4.plot(t,q/C)
+            if graphmode == 1:
+                gc1.plot(t, -i)
+                gc2.plot(t, -i*R)
+            else if graphmode == 2:
+                gc1.plot(t, i)
+                gc2.plot(t, i*R)
+            else if graphmode == 3:
+                gc1.plot(t, i)
+                gc2.plot(t, q/C)
+            else if graphmode == 4:
+                gc1.plot(t, -i)
+                gc2.plot(t, -q/C)
+            else if graphmode == 5:
+                gc1.plot(t, -i)
+                gc2.plot(t, -(i-i2)/dt*L)
+            else if graphmode == 6:
+                gc1.plot(t, i)
+                gc2.plot(t, (i-i2)/dt*L)
+            else if graphmode == 7:
+                gc1.plot(t, -i)
+                gc2.plot(t, 0)
+                
             t += dt
-            c_obj.render_e_fields(-i*R)
+            c_obj.render_e_fields(q/C)
             l_obj.render_b_field(i)
             r_obj.render_power(i, 0.01)
             
             for w in wires:
                 w.render_current(i)
             
-
-if __name__ == "__main__":
-    main()
-
-            
-
 if __name__ == "__main__":
     main()
