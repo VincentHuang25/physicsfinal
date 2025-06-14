@@ -11,9 +11,7 @@ u_0 = 4*pi*10e-7
 e_0 = 8.85*10e-12
 WIRE_RADIUS = 0.02
 
-from vpython import *
-
-#class shit
+#classes
 
 class Node:
     text_dist_factor = 1.5
@@ -139,8 +137,6 @@ class Inductor:
         
         return
     
-   
-
 class Capacitor: 
     plate_area_factor = 7.5e-6
     plate_thickness = 0.025
@@ -149,7 +145,7 @@ class Capacitor:
     dist = 0.25
     
     e_field_density = 0.25
-    e_field_scale = 2.5e-3
+    e_field_scale = 5e-3
     
     def __init__(self, capacitance=1.0, length=1.0, radius=1.0, pose=vec(0,0,0), orient=vec(0,1,0)):
         self.pose = pose
@@ -245,7 +241,7 @@ class Resistor:
     band_thickness_factor = 0.055
     
     power_vector_density = 0.25
-    power_scale = 2e5
+    power_scale = 5e5
     
     arrow_despawn_radius = 1.0  # Distance from center to remove arrow
     
@@ -559,7 +555,7 @@ def main():
     i = 0
     dt = 0.00001
     t = 0
-    simulation_speed = 1000
+    simulation_speed = 500
     running = False
     
     graphmode = 0
@@ -607,6 +603,11 @@ def main():
     wt4=wtext(text='{:1.2f}'.format(capacitor_voltage_slider.value))
     wtext(text='<br>')
     #wtext(text='<br>')
+    
+    wtext(text="Simulation Speed: \n")
+    simulation_speed_slider = slider( bind=handle_evt, min=1, max=1000, value=500,step = 1, id = "simulation_speed")
+    wt5=wtext(text='{:1.2f}'.format(simulation_speed_slider.value))
+    wtext(text='<br>')
     
     wtext(text="Time Step: \n")
     time_step_slider = slider( bind=handle_evt, min=1, max=100, step = 1, id = "time_step")
@@ -746,7 +747,7 @@ def main():
         
         else if evt.id is "simulation_speed":
             wt5.text = '{:1.2f}'.format(simulation_speed_slider.value)
-            simulation_speed = evt.value * 1e20
+            simulation_speed = evt.value
             return
         
         else if evt.id is "time_step":
@@ -765,12 +766,14 @@ def main():
             inductance_slider.disabled = True
             capacitance_slider.disabled = True
             capacitor_voltage_slider.disabled = True
+            simulation_speed_slider.disabled = True
         else: 
             r.text = "Run"
             resistance_slider.disabled = False
             inductance_slider.disabled = False
             capacitance_slider.disabled = False
             capacitor_voltage_slider.disabled = False
+            simulation_speed_slider.disabled = False
         return
     
     def reset():
