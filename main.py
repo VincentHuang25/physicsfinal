@@ -1,6 +1,6 @@
 Web VPython 3.2
 
-scene = canvas(width=750, height=500, align='left')
+scene = canvas(width=500, height=400, align='left')
 scene.range = 2.5
 
 COPPER = vec(184/255, 115/255, 51/255)
@@ -142,14 +142,14 @@ class Inductor:
    
 
 class Capacitor: 
-    plate_area_factor = 5e-6
+    plate_area_factor = 7.5e-6
     plate_thickness = 0.025
     wire_thickness = 0.25
     
     dist = 0.25
     
-    e_field_density = 0.15
-    e_field_scale = 1e-3
+    e_field_density = 0.25
+    e_field_scale = 2.5e-3
     
     def __init__(self, capacitance=1.0, length=1.0, radius=1.0, pose=vec(0,0,0), orient=vec(0,1,0)):
         self.pose = pose
@@ -247,7 +247,7 @@ class Resistor:
     power_vector_density = 0.25
     power_scale = 2e5
     
-    arrow_despawn_radius = 2.0  # Distance from center to remove arrow
+    arrow_despawn_radius = 1.0  # Distance from center to remove arrow
     
     arrow_length = 0.2
     arrow_scale = 0.025
@@ -395,7 +395,7 @@ class Resistor:
 
     def render_power(self, current, dt):
         power = (current ** 2) / self.resistance * self.power_scale
-        emission_rate = self.power_vector_density * power
+        emission_rate = self.power_vector_density * power * 0.25
 
         self._emission_timer += dt
         new_arrows = int(self._emission_timer * emission_rate)
@@ -551,10 +551,10 @@ def iRK4(q,i,R,L,C,dt):
 
 def main():
     #Var
-    R = 10
+    R = 100
     L = 1
     C = 10e-6
-    V = 10
+    V = 20
     q = C*V
     i = 0
     dt = 0.00001
@@ -586,38 +586,40 @@ def main():
     wtext(text="Resistance (in ohms): \n")
     resistance_slider = slider( bind=handle_evt, min=1, max=1000, value=R, step = 1, id = "resistance")
     wt1=wtext(text='{:1.2f}'.format(resistance_slider.value))
-    scene.append_to_caption(' ohms\n')
+    #scene.append_to_caption(' ohms\n')
     wtext(text='<br>')
-    wtext(text='<br>')
+    #wtext(text='<br>')
     
     wtext(text="Inductance (in millihenrys): \n")
     inductance_slider = slider( bind=handle_evt, min=10, max=2500, value=1000, step = 1, id = "inductance")
     wt2=wtext(text='{:1.2f}'.format(inductance_slider.value))
     wtext(text='<br>')
-    wtext(text='<br>')
+    #wtext(text='<br>')
     
     wtext(text="Capacitance (in microfarads): \n")
     capacitance_slider = slider( bind=handle_evt, min=10, max=500, value=C*10e6,step = 1, id = "capacitance")
     wt3=wtext(text='{:1.2f}'.format(capacitance_slider.value))
     wtext(text='<br>')
-    wtext(text='<br>')
+    #wtext(text='<br>')
     
     wtext(text="Capacitor Voltage (in volts): \n")
     capacitor_voltage_slider = slider( bind=handle_evt, min=1, max=25, value=V,step = 1, id = "capacitor_voltage")
     wt4=wtext(text='{:1.2f}'.format(capacitor_voltage_slider.value))
     wtext(text='<br>')
-    wtext(text='<br>')
+    #wtext(text='<br>')
     
     wtext(text="Time Step: \n")
     time_step_slider = slider( bind=handle_evt, min=1, max=100, step = 1, id = "time_step")
     wt6=wtext(text='{:1.2f}'.format(time_step_slider.value))
     scene.append_to_caption(' microseconds\n')
     wtext(text='<br>')
-    wtext(text='<br>')
+    #wtext(text='<br>')
     
     run = button(text="Run", bind=run, background = vector(0,1,0))
     
     button(bind=reset, text="Reset", background=vector(1,0,0))
+    
+    scene.append_to_caption(' Select two nodes to graph the voltage & current!')
     wtext(text='<br>')
     wtext(text='<br>')
     
